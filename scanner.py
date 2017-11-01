@@ -1,48 +1,104 @@
 # -*- coding: utf-8 -*-
 import requests,argparse
-import threading
+import threading,sys,math,platform
 
-def print_info(s):
-    global lock
-    with lock:
-        print('[.]'+s)
-def print_warning(s):
-    global lock
-    with lock:
-        print('[-]'+s)
-def print_error(s):
-    global lock
-    with lock:
-        print('[!]'+s)
-def print_yes(s):
-    global lock
-    with lock:
-        print('[+]'+s)
-def print_normal(s):
-    global lock
-    with lock:
-        print(s)
+class progressBar:
+    barCount = 20    #the progress bar length
+    def __init__(self,lock,count=100,width=50):
+        self.count = count
+        self.lock = lock
+        self.width = width    #the clean blank's width
+        self.pos = 0    #current position.max is count
+        self.isWindows = True if platform.system()=='Windows' else False
+
+    def move(self,deviation=1):
+        with self.lock:
+            if(self.pos < self.count):
+                self.pos += deviation
+
+    def setCount(self,c):
+        self.count = c
+
+    def setWidth(self,w):
+        self.width = w
+
+    def __log(self,s,colorStr=''):#colorStr control color
+        with self.lock:
+            sys.stdout.write(' '* self.width + '\r')
+            sys.stdout.flush()
+            print(colorStr+s)    #change color here
+            scale = self.pos / self.count
+            barPos = math.floor(progressBar.barCount * scale)
+            if(not self.isWindows):
+                colorStr = '\033[1;37;40m'
+            sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%\r'%
+                             (self.pos,self.count,
+                              '#'*barPos,
+                              ' '*(progressBar.barCount-barPos),
+                              scale*100))
+            sys.stdout.flush()
+    def update(self):
+        colorStr=''
+        scale = self.pos / self.count
+        barPos = math.floor(progressBar.barCount * scale)
+        if(not self.isWindows):
+            colorStr = '\033[1;37;40m'
+        sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%     \r'%
+                            (self.pos,self.count,
+                            '#'*barPos,
+                          ' '*(progressBar.barCount-barPos),
+                          scale*100))
+        sys.stdout.flush()
+            
+    def print_warning(self,s):
+        if(self.isWindows):
+            self.__log('[-]'+s)
+        else:
+            colorStr = '\033[1;33m[-]'#highlight yellow
+            self.__log(s,colorStr)
+
+    def print_info(self,s):
+        if(self.isWindows):
+            self.__log('[.]'+s)
+        else:
+            colorStr = '\033[1;37;40m[.]'#highlight yellow
+            self.__log(s,colorStr)
+
+    def print_error(self,s):
+        if(self.isWindows):
+            self.__log('[!]'+s)
+        else:
+            colorStr = '\033[1;31m[!]'#highlight yellow
+            self.__log(s,colorStr)
+    def print_yes(self,s):
+        if(self.isWindows):
+            self.__log('[+]'+s)
+        else:
+            colorStr = '\033[1;32m[+]'#highlight yellow
+            self.__log(s,colorStr)
 
 def scan(x):
-    global url,codeList,method,session,timeout,outfile,attempts
+    global url,codeList,method,session,timeout,outfile,attempts,log
     ret = True
     req = requests.Request(method,url+x)
     r = session.prepare_request(req)
     try:
-        r = session.send(r,timeout=timeout)
+        r = session.send(r,timeout=timeout,allow_redirects=False)
         if(str(r.status_code) in codeList):
-            print_yes('Find "%s" Response %d'%(url+x,r.status_code))
+            log.print_yes('Find "%s" Response %d'%(url+x,r.status_code))
             if(outfile):
                 outfile.write('Find "%s" Response %d\n'%(url+x,r.status_code))
         elif(r.status_code != 404):
             ret = False
-            print_warning('Maybe "%s" Response %d.'%(url+x,r.status_code))
+            log.print_warning('Maybe "%s" Response %d.'%(url+x,r.status_code))
         attempts += 1
     except requests.exceptions.Timeout:
         ret = False
         attempts += 1
-        print_error('The url "%s" timeout!'%(url+x))
-    
+        log.print_error('The url "%s" timeout!'%(url+x))
+
+    log.move()
+    log.update()
     return ret
 
 def work():
@@ -63,7 +119,7 @@ def work():
 
 def main():
     '''参数解析和主要逻辑'''
-    global url,fileList,threadsNum,codeList,method,session,timeout,outfile,attempts
+    global url,fileList,log,threadsNum,codeList,method,session,timeout,outfile,attempts
     parser = argparse.ArgumentParser()
     parser.add_argument("url",help="scanning the url.")
     parser.add_argument("-f","--file",required=True,nargs='+',help="the dictionary files name.")
@@ -88,7 +144,7 @@ def main():
         try:
             outfile = open(outfileName,'w')
         except:
-            print_error('The outfile  "%s" open failed!'%outfileName)
+            log.print_error('The outfile  "%s" open failed!'%outfileName)
             return
         
     for name in fileList:
@@ -97,8 +153,9 @@ def main():
             fieldList.extend(f.read().strip().split('\n'))
             f.close()
         except:
-            print_error('The dic file  "%s" open failed!'%outfileName)
+            log.print_error('The dic file  "%s" open failed!'%name)
             continue
+    log.setCount(len(fieldList))
     
     tl = []
     for t in range(threadsNum):
@@ -109,7 +166,7 @@ def main():
     for t in tl:
         t.join()
         
-    print_yes('all done!')
+    log.print_yes('all done!')
     try:
         outfile.close()
         session.close()
@@ -127,6 +184,7 @@ attempts = 0
 lock = threading.RLock()
 fieldList = []
 indexOffield = 0
-
+log = progressBar(lock)
+import time
 if __name__ == '__main__':
     main()
