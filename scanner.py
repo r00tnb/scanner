@@ -4,7 +4,7 @@ import threading,sys,math,platform
 
 class progressBar:
     barCount = 20    #the progress bar length
-    def __init__(self,lock,count=100,width=50):
+    def __init__(self,lock,count=100,width=60):
         self.count = count
         self.lock = lock
         self.width = width    #the clean blank's width
@@ -39,15 +39,16 @@ class progressBar:
             sys.stdout.flush()
     def update(self):
         colorStr=''
-        scale = self.pos / self.count
-        barPos = math.floor(progressBar.barCount * scale)
         if(not self.isWindows):
             colorStr = '\033[1;37;40m'
-        sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%     \r'%
-                            (self.pos,self.count,
-                            '#'*barPos,
-                          ' '*(progressBar.barCount-barPos),
-                          scale*100))
+        with self.lock:
+            scale = self.pos / self.count
+            barPos = math.floor(progressBar.barCount * scale)
+            sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%\r'%
+                                (self.pos,self.count,
+                                '#'*barPos,
+                              ' '*(progressBar.barCount-barPos),
+                              scale*100))
         sys.stdout.flush()
             
     def print_warning(self,s):
@@ -142,20 +143,35 @@ def main():
     session.headers.update(headers)
     if(outfileName):
         try:
-            outfile = open(outfileName,'w')
+            outfile = open(outfileName,'w',encoding='utf-8')
         except:
-            log.print_error('The outfile  "%s" open failed!'%outfileName)
+            print('[error]The outfile  "%s" open failed!'%outfileName)
             return
         
     for name in fileList:
         try:
-            f = open(name,'r')
+            f = open(name,'r',encoding='utf-8')
             fieldList.extend(f.read().strip().split('\n'))
             f.close()
-        except:
-            log.print_error('The dic file  "%s" open failed!'%name)
+        except Exception as e:
+            print('[error]The dic file  "%s" open failed!'%name)
+            print(e)
             continue
     log.setCount(len(fieldList))
+
+    #display details
+    print('target: '+url)
+    print('method: %s'%method)
+    print('success response code: '+' '.join(codeList))
+    print('timeout: %.2fs'%timeout)
+    s = 'dicFile: '
+    for n in fileList:
+        s += n+' '
+    print(s)
+    print('outFile: %s'%(outfileName if outfileName else 'None'))
+    print('thread count: %d'%threadsNum)
+    print('\n')
+    
     
     tl = []
     for t in range(threadsNum):
@@ -166,7 +182,7 @@ def main():
     for t in tl:
         t.join()
         
-    log.print_yes('all done!')
+    print('all done!')
     try:
         outfile.close()
         session.close()
