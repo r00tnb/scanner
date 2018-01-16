@@ -92,6 +92,8 @@ def scan(x):
         elif(r.status_code != 404):
             ret = False
             log.print_warning('Maybe "%s" Response %d.'%(url+x,r.status_code))
+            if(outfile):
+                outfile.write('Maybe "%s" Response %d\n'%(url+x,r.status_code))
         attempts += 1
     except requests.exceptions.Timeout:
         ret = False
@@ -127,7 +129,7 @@ def main():
     parser.add_argument("-m","--method",default="HEAD",choices=['HEAD','GET','OPTIONS','POST'],help="set http method.")
     parser.add_argument("-t","--threads",default=20,type=int,help="set threads count.")
     parser.add_argument("-T","--timeout",type=float,default=5,help="set timeout.")
-    parser.add_argument("-c","--code",nargs='+',default=["200","403"],help="set the http return code to distinguish")
+    parser.add_argument("-c","--code",nargs='+',default=["200","302","403"],help="set the http return code to distinguish")
     parser.add_argument("-o","--outfile",nargs='?',const="scansuccessurl.txt",help="set outfile.")
     
     args = parser.parse_args()
