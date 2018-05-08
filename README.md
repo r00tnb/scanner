@@ -1,5 +1,5 @@
 # scanner
-用Python3写的网站目录文件扫描程序
+用Python2写的网站目录文件扫描程序
 
 usage: scanner.py [-h] -f FILE [FILE ...] [-m {HEAD,GET,OPTIONS,POST}]
                   [-t THREADS] [-T TIMEOUT] [-c CODE [CODE ...]]

@@ -26,9 +26,9 @@ class progressBar:
         with self.lock:
             sys.stdout.write(' '* self.width + '\r')
             sys.stdout.flush()
-            print(colorStr+s)    #change color here
-            scale = self.pos / self.count
-            barPos = math.floor(progressBar.barCount * scale)
+            print colorStr+s    #change color here
+            scale = 1.0*self.pos / self.count
+            barPos = int(math.floor(progressBar.barCount * scale))
             if(not self.isWindows):
                 colorStr = '\033[1;37;40m'
             sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%\r'%
@@ -42,8 +42,8 @@ class progressBar:
         if(not self.isWindows):
             colorStr = '\033[1;37;40m'
         with self.lock:
-            scale = self.pos / self.count
-            barPos = math.floor(progressBar.barCount * scale)
+            scale = 1.0*self.pos / self.count
+            barPos = int(math.floor(progressBar.barCount * scale))
             sys.stdout.write(colorStr+'working... %d/%d [%s%s] %.2f%%\r'%
                                 (self.pos,self.count,
                                 '#'*barPos,
@@ -145,34 +145,34 @@ def main():
     session.headers.update(headers)
     if(outfileName):
         try:
-            outfile = open(outfileName,'w',encoding='utf-8')
+            outfile = open(outfileName,'w')
         except:
-            print('[error]The outfile  "%s" open failed!'%outfileName)
+            print '[error]The outfile  "%s" open failed!'%outfileName
             return
         
     for name in fileList:
         try:
-            f = open(name,'r',encoding='utf-8')
+            f = open(name,'r')
             fieldList.extend(f.read().strip().split('\n'))
             f.close()
         except Exception as e:
-            print('[error]The dic file  "%s" open failed!'%name)
-            print(e)
+            print '[error]The dic file  "%s" open failed!'%name
+            print e
             continue
     log.setCount(len(fieldList))
 
     #display details
-    print('target: '+url)
-    print('method: %s'%method)
-    print('success response code: '+' '.join(codeList))
-    print('timeout: %.2fs'%timeout)
+    print 'target: '+url
+    print 'method: %s'%method
+    print 'success response code: '+' '.join(codeList)
+    print 'timeout: %.2fs'%timeout
     s = 'dicFile: '
     for n in fileList:
         s += n+' '
-    print(s)
-    print('outFile: %s'%(outfileName if outfileName else 'None'))
-    print('thread count: %d'%threadsNum)
-    print('\n')
+    print s
+    print 'outFile: %s'%(outfileName if outfileName else 'None')
+    print 'thread count: %d'%threadsNum
+    print '\n'
     
     
     tl = []
@@ -184,7 +184,7 @@ def main():
     for t in tl:
         t.join()
         
-    print('all done!')
+    print 'all done!'
     try:
         outfile.close()
         session.close()
@@ -203,6 +203,6 @@ lock = threading.RLock()
 fieldList = []
 indexOffield = 0
 log = progressBar(lock)
-import time
+
 if __name__ == '__main__':
     main()
