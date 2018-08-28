@@ -23,3 +23,7 @@ optional arguments:
                         set the http return code to distinguish
   -o [OUTFILE], --outfile [OUTFILE]
                         set outfile.
+
+ 更新：
+ 20180828
+    1.将scanner从码云移植到github。
